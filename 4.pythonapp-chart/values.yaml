@@ -1,0 +1,14 @@
+pythonapp:
+  image: vishwacloudlab/pythonapp:v4-var
+  replicas: 1
+  port: 8000
+  nodePort: 30011
+
+redis:
+  image: redis:alpine
+  replicas: 1
+  port: 6379
+
+env:
+  redisHost: redis
+  redisPort: "6379"

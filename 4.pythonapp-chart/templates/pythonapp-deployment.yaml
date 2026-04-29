@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pythonapp
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.pythonapp.replicas }}
+  selector:
+    matchLabels:
+      app: pythonapp
+  template:
+    metadata:
+      labels:
+        app: pythonapp
+    spec:
+      containers:
+        - name: pythonapp
+          image: {{ .Values.pythonapp.image }}
+          ports:
+            - containerPort: {{ .Values.pythonapp.port }}
+          env:
+            - name: REDIS_HOST
+              value: {{ .Values.env.redisHost }}
+            - name: REDIS_PORT
+              value: "{{ .Values.env.redisPort }}"

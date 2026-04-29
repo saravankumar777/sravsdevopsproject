@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pythonapp
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: NodePort
+  selector:
+    app: pythonapp
+  ports:
+    - port: {{ .Values.pythonapp.port }}
+      targetPort: {{ .Values.pythonapp.port }}
+      nodePort: {{ .Values.pythonapp.nodePort }}
