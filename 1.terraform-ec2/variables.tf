@@ -12,3 +12,8 @@ variable "public_key_path" {
   description = "Path to your public key file"
   default     = "~/.ssh/id_rsa.pub"
 }
+
+variable "vm_name" {
+  type = list(string)
+  default = ["kube-master", "kube-wn01", "kube-wn02"]
+}

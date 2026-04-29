@@ -1,0 +1,151 @@
+- name: Gather facts
+  setup:
+
+# -------------------------
+# Base packages
+# -------------------------
+- name: Install base packages (Ubuntu)
+  apt:
+    update_cache: yes
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - apt-transport-https
+      - software-properties-common
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install base packages (Rocky/RHEL)
+  dnf:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg2
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+    state: present
+  when: ansible_os_family == "RedHat"
+
+# -------------------------
+# Swap off
+# -------------------------
+- name: Disable swap (runtime)
+  command: swapoff -a
+  changed_when: false
+  failed_when: false
+
+- name: Disable swap in /etc/fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\sswap\s.*)$'
+    replace: '# \1'
+  failed_when: false
+
+# -------------------------
+# Kernel modules + sysctl (both OS)
+# -------------------------
+- name: Ensure modules-load config exists
+  copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      overlay
+      br_netfilter
+
+- name: Load kernel modules now
+  shell: |
+    modprobe overlay
+    modprobe br_netfilter
+  args:
+    executable: /bin/bash
+  changed_when: false
+  failed_when: false
+
+- name: Sysctl required by Kubernetes
+  copy:
+    dest: /etc/sysctl.d/k8s.conf
+    content: |
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward                 = 1
+
+- name: Apply sysctl
+  command: sysctl --system
+  changed_when: false
+
+# -------------------------
+# Rocky/RHEL specifics: SELinux + firewalld
+# -------------------------
+# -------------------------
+# Rocky/RHEL: SELinux permissive (no ansible.posix required)
+# -------------------------
+- name: Check SELinux status (Rocky/RHEL)
+  command: getenforce
+  register: selinux_state
+  changed_when: false
+  failed_when: false
+  when: ansible_os_family == "RedHat"
+
+- name: Set SELinux to permissive now (Rocky/RHEL)
+  command: setenforce 0
+  when:
+    - ansible_os_family == "RedHat"
+    - selinux_state.stdout is defined
+    - selinux_state.stdout != "Permissive"
+    - selinux_state.stdout != "Disabled"
+  failed_when: false
+
+- name: Make SELinux permissive persistent in /etc/selinux/config (Rocky/RHEL)
+  replace:
+    path: /etc/selinux/config
+    regexp: '^SELINUX=.*'
+    replace: 'SELINUX=permissive'
+  when: ansible_os_family == "RedHat"
+  failed_when: false
+
+- name: Ensure firewalld installed (Rocky/RHEL)
+  dnf:
+    name: firewalld
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Enable and start firewalld (Rocky/RHEL)
+  systemd:
+    name: firewalld
+    enabled: true
+    state: started
+  when: ansible_os_family == "RedHat"
+
+# -------------------------
+# Rocky/RHEL: Open required ports using firewall-cmd (no ansible.posix)
+# -------------------------
+- name: Ensure firewalld is installed (Rocky/RHEL)
+  dnf:
+    name: firewalld
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Enable and start firewalld (Rocky/RHEL)
+  systemd:
+    name: firewalld
+    enabled: true
+    state: started
+  when: ansible_os_family == "RedHat"
+
+- name: Open Kubernetes ports using firewall-cmd (Rocky/RHEL)
+  shell: |
+    set -e
+    firewall-cmd --permanent --add-port=6443/tcp
+    firewall-cmd --permanent --add-port=2379-2380/tcp
+    firewall-cmd --permanent --add-port=10250/tcp
+    firewall-cmd --permanent --add-port=10257/tcp
+    firewall-cmd --permanent --add-port=10259/tcp
+    firewall-cmd --permanent --add-port=30000-32767/tcp
+    firewall-cmd --reload
+  args:
+    executable: /bin/bash
+  when: ansible_os_family == "RedHat"
+  changed_when: true
+  failed_when: false

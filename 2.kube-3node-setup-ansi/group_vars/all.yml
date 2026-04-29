@@ -1,0 +1,13 @@
+# Kubernetes versions
+kubernetes_major_minor: "1.29"
+kubernetes_version_deb: "1.29.2-1.1"     # Ubuntu apt version format
+kubernetes_version_rpm: "1.29.2-1.1"     # Rocky rpm version format (same string usually works)
+
+# Cluster networking
+pod_network_cidr: "192.168.0.0/16"       # Calico default
+control_plane_endpoint: ""               # optional VIP/DNS
+
+# Calico manifest (pin a known version)
+calico_manifest_url: "https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/calico.yaml"
+
+containerd_version: "1.8"      # use current containerd release (optional)

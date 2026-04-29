@@ -1,0 +1,58 @@
+- name: Get master primary IP
+  shell: "hostname -I | awk '{print $1}'"
+  register: master_ip
+  changed_when: false
+
+- name: Initialize Kubernetes control-plane
+  shell: |
+    kubeadm init \
+      --apiserver-advertise-address={{ master_ip.stdout }} \
+      --pod-network-cidr={{ pod_network_cidr }} \
+      --cri-socket=unix:///run/containerd/containerd.sock \
+      {% if control_plane_endpoint|length > 0 %} --control-plane-endpoint={{ control_plane_endpoint }} {% endif %}
+  args:
+    executable: /bin/bash
+    creates: /etc/kubernetes/admin.conf
+
+# kubeconfig for the ansible_user
+- name: Create .kube directory
+  file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0700"
+
+- name: Copy admin.conf to user kubeconfig
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+
+- name: Wait for kube-apiserver to be reachable on master
+  wait_for:
+    host: "{{ master_ip.stdout }}"
+    port: 6443
+    delay: 5
+    timeout: 300
+
+# Apply Calico (run as the user with kubeconfig)
+- name: Install Calico CNI
+  become: true
+  become_user: "{{ ansible_user }}"
+  shell: |
+    kubectl apply --validate=false -f {{ calico_manifest_url }}
+  args:
+    executable: /bin/bash
+
+- name: Generate join command
+  shell: kubeadm token create --print-join-command
+  register: join_cmd
+  changed_when: false
+
+- name: Expose join command as fact
+  set_fact:
+    kubeadm_join_command: "{{ join_cmd.stdout }}"

@@ -1,0 +1,75 @@
+# -------------------------
+# Ubuntu: pkgs.k8s.io apt repo
+# -------------------------
+- name: Add Kubernetes keyring directory (Ubuntu)
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  when: ansible_os_family == "Debian"
+
+- name: Add Kubernetes apt key (Ubuntu)
+  shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_major_minor }}/deb/Release.key \
+      | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    executable: /bin/bash
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  when: ansible_os_family == "Debian"
+
+- name: Add Kubernetes apt repo (Ubuntu)
+  copy:
+    dest: /etc/apt/sources.list.d/kubernetes.list
+    content: |
+      deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_major_minor }}/deb/ /
+  when: ansible_os_family == "Debian"
+
+- name: Install kubelet/kubeadm/kubectl (Ubuntu)
+  apt:
+    update_cache: yes
+    name:
+      - "kubelet={{ kubernetes_version_deb }}"
+      - "kubeadm={{ kubernetes_version_deb }}"
+      - "kubectl={{ kubernetes_version_deb }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Hold Kubernetes packages (Ubuntu)
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+  when: ansible_os_family == "Debian"
+
+# -------------------------
+# Rocky/RHEL: pkgs.k8s.io rpm repo
+# -------------------------
+- name: Add Kubernetes yum repo (Rocky/RHEL)
+  copy:
+    dest: /etc/yum.repos.d/kubernetes.repo
+    content: |
+      [kubernetes]
+      name=Kubernetes
+      baseurl=https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_major_minor }}/rpm/
+      enabled=1
+      gpgcheck=1
+      gpgkey=https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_major_minor }}/rpm/repodata/repomd.xml.key
+  when: ansible_os_family == "RedHat"
+
+- name: Install kubelet/kubeadm/kubectl (Rocky/RHEL) - latest from repo
+  dnf:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Enable kubelet service (both)
+  systemd:
+    name: kubelet
+    enabled: true
+    state: started

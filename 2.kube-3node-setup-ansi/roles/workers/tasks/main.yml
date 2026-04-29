@@ -1,0 +1,14 @@
+- name: Wait for API server to be reachable
+  wait_for:
+    host: "{{ hostvars[groups['control'][0]].ansible_host }}"
+    port: 6443
+    timeout: 300
+
+- name: Join node to cluster
+  shell: |
+    {{ hostvars[groups['control'][0]].kubeadm_join_command }} \
+    --cri-socket=unix:///run/containerd/containerd.sock \
+    --v=5
+  args:
+    executable: /bin/bash
+    creates: /etc/kubernetes/kubelet.conf

@@ -1,0 +1,19 @@
+- name: Prepare all nodes
+  hosts: k8s
+  become: true
+  roles:
+    - common
+    - containerd
+    - k8s_packages
+
+- name: Initialize control-plane
+  hosts: control
+  become: true
+  roles:
+    - master
+
+- name: Join workers
+  hosts: workers
+  become: true
+  roles:
+    - workers

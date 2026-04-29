@@ -1,0 +1,16 @@
+
+[control]
+kube-master ansible_host=172.31.19.235
+
+[workers]
+kube-worker1 ansible_host=172.31.28.175
+kube-worker2 ansible_host=172.31.19.78
+
+[k8s:children]
+control
+workers
+
+[all:vars]
+ansible_user=ubuntu
+ansible_become=true
+ansible_ssh_private_key_file=~/.ssh/id_rsa

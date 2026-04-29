@@ -84,7 +84,7 @@ data "aws_ami" "ubuntu_24" {
 
 # ── 3 EC2 Instances ───────────────────────────────────────────────
 resource "aws_instance" "ubuntu_servers" {
-  count                  = 3
+  count                  = length(var.vm_name)
   ami                    = data.aws_ami.ubuntu_24.id
   instance_type          = "t2.medium"
   key_name               = aws_key_pair.ubuntu_key.key_name
@@ -96,7 +96,7 @@ resource "aws_instance" "ubuntu_servers" {
   }
 
   tags = {
-    Name        = "ubuntu-server-${count.index + 1}"
+    Name        = var.vm_name[count.index]
     Environment = "dev"
   }
 }
