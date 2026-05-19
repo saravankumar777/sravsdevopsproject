@@ -53,44 +53,44 @@ pipeline {
             }
         }
 
-        // ── Stage 4: Build Docker Image ──────────────────────────
-        stage('Build Docker Image') {
-            steps {
-                sh """
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                """
-            }
-        }
+        // // ── Stage 4: Build Docker Image ──────────────────────────
+        // stage('Build Docker Image') {
+        //     steps {
+        //         sh """
+        //             docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+        //         """
+        //     }
+        // }
 
-        // ── Stage 5: Push to DockerHub ───────────────────────────
-        stage('Push to DockerHub') {
-            steps {
-                sh """
-                    echo ${DOCKERHUB_CREDS_PSW} | docker login \
-                      -u ${DOCKERHUB_CREDS_USR} --password-stdin
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                    docker rmi ${IMAGE_NAME}:${IMAGE_TAG}
-                """
-            }
-        }
+        // // ── Stage 5: Push to DockerHub ───────────────────────────
+        // stage('Push to DockerHub') {
+        //     steps {
+        //         sh """
+        //             echo ${DOCKERHUB_CREDS_PSW} | docker login \
+        //               -u ${DOCKERHUB_CREDS_USR} --password-stdin
+        //             docker push ${IMAGE_NAME}:${IMAGE_TAG}
+        //             docker rmi ${IMAGE_NAME}:${IMAGE_TAG}
+        //         """
+        //     }
+        // }
 
-        // ── Stage 6: Update Helm values.yaml ────────────────────
-        stage('Update Helm Values') {
-            steps {
-                withCredentials([string(credentialsId: 'github-token', variable: 'GIT_TOKEN')]) {
-                    sh """
-                        sed -i 's|image: ${IMAGE_NAME}:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|' \
-                          pythonapp-chart/values.yaml
+        // // ── Stage 6: Update Helm values.yaml ────────────────────
+        // stage('Update Helm Values') {
+        //     steps {
+        //         withCredentials([string(credentialsId: 'github-token', variable: 'GIT_TOKEN')]) {
+        //             sh """
+        //                 sed -i 's|image: ${IMAGE_NAME}:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|' \
+        //                   pythonapp-chart/values.yaml
 
-                        git config user.email "jenkins@ci.com"
-                        git config user.name "Jenkins"
-                        git add pythonapp-chart/values.yaml
-                        git commit -m "Update image tag to ${IMAGE_TAG}"
-                        git push https://${GIT_TOKEN}@github.com/saravankumar777/sravsdevopsproject.git main
-                    """
-                }
-            }
-        }
+        //                 git config user.email "jenkins@ci.com"
+        //                 git config user.name "Jenkins"
+        //                 git add pythonapp-chart/values.yaml
+        //                 git commit -m "Update image tag to ${IMAGE_TAG}"
+        //                 git push https://${GIT_TOKEN}@github.com/saravankumar777/sravsdevopsproject.git main
+        //             """
+        //         }
+        //     }
+        // }
 
     }
 
