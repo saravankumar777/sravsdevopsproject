@@ -53,16 +53,76 @@ pipeline {
             }
         }
 
-        // // ── Stage 4: Build Docker Image ──────────────────────────
-        // stage('Build Docker Image') {
-        //     steps {
-        //         sh """
-        //             docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-        //         """
-        //     }
-        // }
+        // ── Stage 4: OWASP Dependency Check ──────────────────────
+        stage('OWASP Dependency Check') {
+            steps {
+                dependencyCheck(
+                    additionalArguments: '''
+                        --scan .
+                        --format HTML
+                        --format XML
+                        --out dependency-check-report
+                        --prettyPrint
+                    ''',
+                    odcInstallation: 'OWASP-DC'
+                )
+            }
+            post {
+                always {
+                    // Publish the report in Jenkins UI
+                    dependencyCheckPublisher(
+                        pattern: 'dependency-check-report/dependency-check-report.xml'
+                    )
+                }
+                success {
+                    echo "✅ OWASP scan passed — no critical dependency vulnerabilities"
+                }
+                failure {
+                    echo "❌ OWASP found vulnerable dependencies — check report"
+                }
+            }
+        }
 
-        // // ── Stage 5: Push to DockerHub ───────────────────────────
+        // ── Stage 5: Build Docker Image ──────────────────────────
+        stage('Build Docker Image') {
+            steps {
+                sh """
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                """
+            }
+        }
+
+        // ── Stage 6: Trivy Image Scan ────────────────────────────
+        stage('Trivy Image Scan') {
+            steps {
+                sh """
+                    echo "Scanning image for vulnerabilities..."
+
+                    # Scan and save report
+                    trivy image \
+                      --exit-code 1 \
+                      --severity HIGH,CRITICAL \
+                      --no-progress \
+                      --format table \
+                      -o trivy-report.txt \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
+                """
+            }
+            post {
+                always {
+                    // Show report in Jenkins even if scan fails
+                    sh "cat trivy-report.txt || true"
+                }
+                failure {
+                    echo "❌ Trivy found HIGH/CRITICAL vulnerabilities — stopping pipeline"
+                }
+                success {
+                    echo "✅ Trivy scan passed — no HIGH/CRITICAL vulnerabilities found"
+                }
+            }
+        }
+
+        // ── Stage 7: Push to DockerHub ───────────────────────────
         // stage('Push to DockerHub') {
         //     steps {
         //         sh """
@@ -74,7 +134,7 @@ pipeline {
         //     }
         // }
 
-        // // ── Stage 6: Update Helm values.yaml ────────────────────
+        // ── Stage 8: Update Helm values.yaml ────────────────────
         // stage('Update Helm Values') {
         //     steps {
         //         withCredentials([string(credentialsId: 'github-token', variable: 'GIT_TOKEN')]) {
