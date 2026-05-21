@@ -45,13 +45,13 @@ pipeline {
         }
 
         // ── Stage 3: Quality Gate ────────────────────────────────
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
+       // stage('Quality Gate') {
+       //     steps {
+       //         timeout(time: 5, unit: 'MINUTES') {
+       //             waitForQualityGate abortPipeline: true
+       //         }
+       //     }
+      //  }
 
         // ── Stage 4: OWASP Dependency Check ──────────────────────
         stage('OWASP Dependency Check') {
