@@ -44,10 +44,10 @@ pipeline {
             }
         }
 
-         ── Stage 3: Quality Gate ────────────────────────────────
+        // ── Stage 3: Quality Gate ────────────────────────────────
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
+                timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -69,16 +69,15 @@ pipeline {
             }
             post {
                 always {
-                    // Publish the report in Jenkins UI
                     dependencyCheckPublisher(
                         pattern: 'dependency-check-report/dependency-check-report.xml'
                     )
                 }
                 success {
-                    echo "✅ OWASP scan passed — no critical dependency vulnerabilities"
+                    echo "✅ OWASP scan passed"
                 }
                 failure {
-                    echo "❌ OWASP found vulnerable dependencies — check report"
+                    echo "❌ OWASP found vulnerable dependencies"
                 }
             }
         }
@@ -97,8 +96,6 @@ pipeline {
             steps {
                 sh """
                     echo "Scanning image for vulnerabilities..."
-
-                    # Scan and save report
                     trivy image \
                       --exit-code 1 \
                       --severity HIGH,CRITICAL \
@@ -110,14 +107,13 @@ pipeline {
             }
             post {
                 always {
-                    // Show report in Jenkins even if scan fails
                     sh "cat trivy-report.txt || true"
                 }
                 failure {
-                    echo "❌ Trivy found HIGH/CRITICAL vulnerabilities — stopping pipeline"
+                    echo "❌ Trivy found HIGH/CRITICAL vulnerabilities"
                 }
                 success {
-                    echo "✅ Trivy scan passed — no HIGH/CRITICAL vulnerabilities found"
+                    echo "✅ Trivy scan passed"
                 }
             }
         }
@@ -141,7 +137,6 @@ pipeline {
         //             sh """
         //                 sed -i 's|image: ${IMAGE_NAME}:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|' \
         //                   pythonapp-chart/values.yaml
-
         //                 git config user.email "jenkins@ci.com"
         //                 git config user.name "Jenkins"
         //                 git add pythonapp-chart/values.yaml
