@@ -9,7 +9,7 @@ pipeline {
 
         // Docker & ECR
         DOCKERHUB_CREDS  = credentials('dockerhub-creds')
-        AWS_REGION       = "ap-south-1"
+        AWS_REGION       = "us-east-1"
         ECR_REGISTRY     = "201048995887.dkr.ecr.us-east-1.amazonaws.com"
         ECR_REPO         = "sravsdevopsproject"
         IMAGE_TAG        = "v${BUILD_NUMBER}"
