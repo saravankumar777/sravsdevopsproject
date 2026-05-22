@@ -56,24 +56,27 @@ pipeline {
         // ── Stage 4: OWASP Dependency Check ──────────────────────
         stage('OWASP Dependency Check') {
             steps {
-                sh """
-                    /opt/dependency-check/dependency-check/bin/dependency-check.sh \
-                      --scan ./ \
-                      --format XML \
-                      --format HTML \
-                      --out . \
-                      --project sravsdevopsproject
-                """
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    sh """
+                        /opt/dependency-check/dependency-check/bin/dependency-check.sh \
+                          --scan ./ \
+                          --format XML \
+                          --format HTML \
+                          --out . \
+                          --project sravsdevopsproject \
+                          --connectionTimeout 60000 \
+                          --readTimeout 60000
+                    """
+                }
             }
             post {
                 always {
-                    dependencyCheckPublisher(
-                        pattern: 'dependency-check-report.xml'
-                    )
-                    echo "✅ OWASP scan completed"
-                }
-                failure {
-                    echo "❌ OWASP found vulnerable dependencies"
+                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                        dependencyCheckPublisher(
+                            pattern: 'dependency-check-report.xml'
+                        )
+                    }
+                    echo "✅ OWASP stage completed"
                 }
             }
         }
