@@ -14,6 +14,6 @@ variable "public_key_path" {
 }
 
 variable "vm_name" {
-  type = list(string)
+  type    = list(string)
   default = ["kube-master", "kube-wn01", "kube-wn02"]
 }
