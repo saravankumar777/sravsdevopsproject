@@ -57,27 +57,16 @@ pipeline {
         stage('OWASP Dependency Check') {
             steps {
                 dependencyCheck(
-                    additionalArguments: '''
-                        --scan .
-                        --format HTML
-                        --format XML
-                        --out dependency-check-report
-                        --prettyPrint
-                    ''',
+                    additionalArguments: '--scan ./ --format XML --out .',
                     odcInstallation: 'OWASP-DC'
                 )
             }
             post {
                 always {
                     dependencyCheckPublisher(
-                        pattern: 'dependency-check-report/dependency-check-report.xml'
+                        pattern: 'dependency-check-report.xml'
                     )
-                }
-                success {
-                    echo "✅ OWASP scan passed"
-                }
-                failure {
-                    echo "❌ OWASP found vulnerable dependencies"
+                    echo "✅ OWASP scan completed — check report"
                 }
             }
         }
