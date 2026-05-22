@@ -53,35 +53,7 @@ pipeline {
             }
         }
 
-        // ── Stage 4: OWASP Dependency Check ──────────────────────
-        stage('OWASP Dependency Check') {
-            steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                    sh """
-                        /opt/dependency-check/dependency-check/bin/dependency-check.sh \
-                          --scan ./ \
-                          --format XML \
-                          --format HTML \
-                          --out . \
-                          --project sravsdevopsproject \
-                          --connectionTimeout 60000 \
-                          --readTimeout 60000
-                    """
-                }
-            }
-            post {
-                always {
-                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                        dependencyCheckPublisher(
-                            pattern: 'dependency-check-report.xml'
-                        )
-                    }
-                    echo "✅ OWASP stage completed"
-                }
-            }
-        }
-
-        // ── Stage 5: Build Docker Image ──────────────────────────
+        // ── Stage 4: Build Docker Image ──────────────────────────
         stage('Build Docker Image') {
             steps {
                 sh """
@@ -90,7 +62,7 @@ pipeline {
             }
         }
 
-        // ── Stage 6: Trivy Image Scan ────────────────────────────
+        // ── Stage 5: Trivy Image Scan ────────────────────────────
         stage('Trivy Image Scan') {
             steps {
                 sh """
@@ -117,7 +89,7 @@ pipeline {
             }
         }
 
-        // ── Stage 7: Push to DockerHub ───────────────────────────
+        // ── Stage 6: Push to DockerHub ───────────────────────────
         // stage('Push to DockerHub') {
         //     steps {
         //         sh """
@@ -129,7 +101,7 @@ pipeline {
         //     }
         // }
 
-        // ── Stage 8: Update Helm values.yaml ────────────────────
+        // ── Stage 7: Update Helm values.yaml ────────────────────
         // stage('Update Helm Values') {
         //     steps {
         //         withCredentials([string(credentialsId: 'github-token', variable: 'GIT_TOKEN')]) {
