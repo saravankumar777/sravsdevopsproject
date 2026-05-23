@@ -1,0 +1,68 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: elk-alerts
+  namespace: logging
+  labels:
+    release: prometheus-stack
+spec:
+  groups:
+
+    - name: elasticsearch-alerts
+      rules:
+        - alert: ElasticsearchDown
+          expr: |
+            kube_pod_status_phase{
+              namespace="logging",
+              pod=~"elasticsearch.*",
+              phase!="Running"
+            } == 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Elasticsearch is DOWN"
+            description: "Elasticsearch pod is not running"
+
+        - alert: KibanaDown
+          expr: |
+            kube_deployment_status_replicas_available{
+              namespace="logging",
+              deployment="kibana-kibana"
+            } == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kibana is DOWN"
+            description: "Kibana has no available replicas"
+
+        - alert: FilebeatDown
+          expr: |
+            kube_daemonset_status_number_ready{
+              namespace="logging",
+              daemonset=~"filebeat.*"
+            } < kube_daemonset_status_desired_number_scheduled{
+              namespace="logging",
+              daemonset=~"filebeat.*"
+            }
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Filebeat not running on all nodes"
+            description: "Some Filebeat pods are not ready"
+
+        - alert: LogstashDown
+          expr: |
+            kube_pod_status_phase{
+              namespace="logging",
+              pod=~"logstash.*",
+              phase!="Running"
+            } == 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Logstash is DOWN"
+            description: "Logstash pod is not running"

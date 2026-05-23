@@ -1,0 +1,121 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sravsdevopsproject-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus-stack
+spec:
+  groups:
+
+    # ── Pod CPU Alert ──────────────────────────────────────
+    - name: pod-cpu-alerts
+      rules:
+        - alert: PythonAppHighCPU
+          expr: |
+            rate(container_cpu_usage_seconds_total{
+              namespace="dev",
+              pod=~"pythonapp.*",
+              container!=""
+            }[5m]) * 100 > 80
+          for: 2m
+          labels:
+            severity: warning
+            project: sravsdevopsproject
+          annotations:
+            summary: "Python App CPU High"
+            description: "Pod {{ $labels.pod }} CPU is {{ $value }}%"
+
+        - alert: PythonAppCriticalCPU
+          expr: |
+            rate(container_cpu_usage_seconds_total{
+              namespace="dev",
+              pod=~"pythonapp.*",
+              container!=""
+            }[5m]) * 100 > 95
+          for: 1m
+          labels:
+            severity: critical
+            project: sravsdevopsproject
+          annotations:
+            summary: "Python App CPU Critical"
+            description: "Pod {{ $labels.pod }} CPU is {{ $value }}% — CRITICAL"
+
+    # ── Pod Memory Alert ───────────────────────────────────
+    - name: pod-memory-alerts
+      rules:
+        - alert: PythonAppHighMemory
+          expr: |
+            container_memory_usage_bytes{
+              namespace="dev",
+              pod=~"pythonapp.*",
+              container!=""
+            } / 1024 / 1024 > 400
+          for: 2m
+          labels:
+            severity: warning
+            project: sravsdevopsproject
+          annotations:
+            summary: "Python App Memory High"
+            description: "Pod {{ $labels.pod }} memory is {{ $value }}MB"
+
+        - alert: PythonAppCriticalMemory
+          expr: |
+            container_memory_usage_bytes{
+              namespace="dev",
+              pod=~"pythonapp.*",
+              container!=""
+            } / 1024 / 1024 > 700
+          for: 1m
+          labels:
+            severity: critical
+            project: sravsdevopsproject
+          annotations:
+            summary: "Python App Memory Critical"
+            description: "Pod {{ $labels.pod }} memory is {{ $value }}MB — may OOMKill"
+
+    # ── Application Health Alert ───────────────────────────
+    - name: app-health-alerts
+      rules:
+        - alert: PythonAppPodNotRunning
+          expr: |
+            kube_pod_status_phase{
+              namespace="dev",
+              pod=~"pythonapp.*",
+              phase!="Running"
+            } == 1
+          for: 1m
+          labels:
+            severity: critical
+            project: sravsdevopsproject
+          annotations:
+            summary: "Python App Pod Not Running"
+            description: "Pod {{ $labels.pod }} is in {{ $labels.phase }} state"
+
+        - alert: PythonAppPodRestarting
+          expr: |
+            rate(kube_pod_container_status_restarts_total{
+              namespace="dev",
+              pod=~"pythonapp.*"
+            }[15m]) > 0
+          for: 0m
+          labels:
+            severity: warning
+            project: sravsdevopsproject
+          annotations:
+            summary: "Python App Pod Restarting"
+            description: "Pod {{ $labels.pod }} is restarting"
+
+        - alert: PythonAppDown
+          expr: |
+            kube_deployment_status_replicas_available{
+              namespace="dev",
+              deployment="pythonapp"
+            } == 0
+          for: 1m
+          labels:
+            severity: critical
+            project: sravsdevopsproject
+          annotations:
+            summary: "Python App is DOWN"
+            description: "No pythonapp replicas available in dev namespace"
