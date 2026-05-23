@@ -1,0 +1,24 @@
+# ── Trivy Operator Configuration ─────────────────────────
+trivy:
+  ignoreUnfixed: true
+  severity: HIGH,CRITICAL
+
+operator:
+  scanJobTimeout: 5m
+  vulnerabilityScanner:
+    enabled: true
+  configAuditScanner:
+    enabled: true
+  rbacAssessmentScanner:
+    enabled: true
+  infraAssessmentScanner:
+    enabled: true
+  clusterComplianceEnabled: true
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"

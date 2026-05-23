@@ -1,0 +1,79 @@
+# ── Falco Configuration ───────────────────────────────────
+driver:
+  kind: modern_ebpf
+
+falco:
+  json_output: true
+  json_include_output_property: true
+  log_level: info
+
+  stdout_output:
+    enabled: true
+
+  # Alert rules
+  rules_files:
+    - /etc/falco/falco_rules.yaml
+    - /etc/falco/falco_rules.local.yaml
+    - /etc/falco/k8s_audit_rules.yaml
+
+  # Custom rules for sravsdevopsproject
+  customRules:
+    custom-rules.yaml: |-
+      - rule: Shell spawned in container
+        desc: A shell was spawned inside a container
+        condition: >
+          spawned_process and container
+          and shell_procs
+          and not container.image.repository in (trusted_images)
+        output: >
+          Shell spawned in container
+          (user=%user.name pod=%k8s.pod.name
+          container=%container.name
+          image=%container.image.repository
+          cmd=%proc.cmdline)
+        priority: WARNING
+        tags: [container, shell, sravsdevopsproject]
+
+      - rule: Sensitive file accessed
+        desc: Sensitive file was accessed
+        condition: >
+          open_read and container
+          and sensitive_files
+        output: >
+          Sensitive file accessed
+          (user=%user.name pod=%k8s.pod.name
+          file=%fd.name)
+        priority: ERROR
+        tags: [container, file, sravsdevopsproject]
+
+      - rule: Unexpected network connection
+        desc: Unexpected outbound network connection
+        condition: >
+          outbound and container
+          and not trusted_containers
+          and not proc.name in (trusted_network_tools)
+        output: >
+          Unexpected network connection
+          (user=%user.name pod=%k8s.pod.name
+          container=%container.name
+          connection=%fd.name)
+        priority: WARNING
+        tags: [network, container, sravsdevopsproject]
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+tolerations:
+  - key: node-role.kubernetes.io/master
+    effect: NoSchedule
+    operator: Exists
+  - operator: Exists
+
+# ── Falcosidekick — forward alerts ────────────────────────
+falcosidekick:
+  enabled: false
