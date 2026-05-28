@@ -51,7 +51,7 @@ pipeline {
             }
             post {
                 always {
-                    timeout(time: 10, unit: 'MINUTES') {
+                    timeout(time: 2, unit: 'MINUTES') {
                         catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                             waitForQualityGate abortPipeline: false
                         }
